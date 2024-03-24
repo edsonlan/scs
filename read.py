@@ -2,52 +2,31 @@ import pandas as pd
 import os
 import sys
 import colour
-
-
+from dms2dec.dms_convert import dms2dec
  
 columns_to_keep = [
 #Idenficicacao    
 #'Código Horizonte',
 #'Símbolo Horizonte',
-#'Número PA'
-#'Código PA',
- #Profundidade
-#'Profundidade Superior',
-#'Profundidade Inferior',
+'Número PA',
+'Código PA',
+'UF',
+'Município',
+#'Sistema de Coordenada',
+'Latitude Graus',
+'Latitude Minutos',
+'Latitude Segundos',
+'Longitude Graus',
+'Longitude Minutos',
+'Longitude Segundos',
+'Latitude Hemisfério',
+'Longitude Hemisfério',
+'Altitude (m)',
+'Símbolo Horizonte',
+'Código Horizonte',
+'Profundidade Superior',
+'Profundidade Inferior',
 #Drenagem
-'Classe de drenagem',
- #Fisico-Quimica                  
-'Atividade da argila', #Categorico
-'Saturação por bases ou por alumínio', #Categorico
-'pH - H2O',
-'Ataque sulfúrico - SiO2 / Al2O3 (Ki)',
-'Carbono orgânico',
-#Cor/Textura
-'Classe de Textura', #Categorico
-'Cor da Amostra Úmida - Matiz',
-'Cor da Amostra Úmida - Valor',
-'Cor da Amostra Úmida - Croma',
-'Cor da Amostra Amassada - Matiz',
-'Cor da Amostra Amassada - Valor',
-'Cor da Amostra Amassada - Croma',
-'Cor da Amostra Seca - Matiz',
-'Cor da Amostra Seca - Valor',
-'Cor da Amostra Seca - Croma',
-'Cor da Amostra Seca Triturada - Matiz',
-'Cor da Amostra Seca Triturada - Valor',
-'Cor da Amostra Seca Triturada - Croma',
-#Granulometria
-'Frações da Amostra Total - Calhaus (g/Kg)',
-'Frações da Amostra Total - Cascalho (g/Kg)',
-'Frações da Amostra Total - Terra Fina (g/Kg)',
-'Composição Granulométrica da terra fina - Areia Grossa (g/Kg)',
-'Composição Granulométrica da terra fina - Areia Fina (g/Kg)',
-'Composição Granulométrica da terra fina - Areia Total (g/Kg)',
-'Composição Granulométrica da terra fina - Silte (g/Kg)',
-'Composição Granulométrica da terra fina - Argila (g/Kg)',
-'Composição Granulométrica da terra fina - Relação Silte Argila (g/Kg)',
-'Composição Granulométrica da terra fina - Argila Dispersa em Água (g/Kg)',
-#Classificacao Nivel 1 
 'Classe de Solos Nível 1'
 
 ]
@@ -127,38 +106,61 @@ def convert_munsell_color (matiz_column,value_column,chroma_column):
     munsell_color = matiz + " " +str(value)+"/" + str(chroma)
     color = colour.xyY_to_XYZ(colour.munsell_colour_to_xyY(munsell_color))
     return color
+ 
+def convert_dms_to_lat_long(row,column_degrees,column_minutes,column_seconds,hemisphere):
+
+       degree_string=str(row[column_degrees]) 
+       minutes_string=str(row[column_minutes]) 
+       seconds_string = str(row[column_seconds])
+       hemisphere_string=str(row[hemisphere]) 
+                         
+       if(hemisphere_string=='Sul'):
+          hemisphere_string='S'
+       if (hemisphere_string=='Norte'):
+          hemisphere_string='N'          
+       coords_string =  str().join([degree_string, u'\N{DEGREE SIGN}',minutes_string,f"\'",seconds_string,f"\"",hemisphere_string])
+       if(degree_string!='nan' and minutes_string!='nan' and seconds_string!='nan' and hemisphere_string!='nan'):
+        return dms2dec(coords_string)
+       else:
+        return ""
+       
 
 def map_colors(dataframe):
- for index in dataframe.index:
-     try:
-      XYZ_color_amostra_seca = convert_munsell_color(dataframe.loc[index]['cor_amostra_seca_matiz'],dataframe.loc[index]['cor_amostra_seca_valor'],dataframe.loc[index]['cor_amostra_seca_croma'])
-      dataframe['cor_amostra_seca_X']=XYZ_color_amostra_seca[0]
-      dataframe['cor_amostra_seca_Y']=XYZ_color_amostra_seca[1]
-      dataframe['cor_amostra_seca_Z']=XYZ_color_amostra_seca[2]
-      
-      XYZ_color_amostra_umida = convert_munsell_color(dataframe.loc[index]['cor_amostra_umida_matiz'],dataframe.loc[index]['cor_amostra_umida_valor'],dataframe.loc[index]['cor_amostra_umida_croma'])
-      dataframe['cor_amostra_umida_X']=XYZ_color_amostra_umida[0]
-      dataframe['cor_amostra_umida_Y']=XYZ_color_amostra_umida[1]
-      dataframe['cor_amostra_umida_Z']=XYZ_color_amostra_umida[2]
-      
-      XYZ_color_amostra_amassada = convert_munsell_color(dataframe.loc[index]['cor_amostra_amassada_matiz'],dataframe.loc[index]['cor_amostra_amassada_valor'],dataframe.loc[index]['cor_amostra_amassada_croma'])
-      dataframe['cor_amostra_amassada_X']=XYZ_color_amostra_amassada[0]
-      dataframe['cor_amostra_amassada_Y']=XYZ_color_amostra_amassada[1]
-      dataframe['cor_amostra_amassada_Z']=XYZ_color_amostra_amassada[2]
-           
-      XYZ_color_amostra_seca_triturada = convert_munsell_color(dataframe.loc[index]['cor_amostra_seca_triturada_matiz'],dataframe.loc[index]['cor_amostra_seca_triturada_valor'],dataframe.loc[index]['cor_amostra_seca_triturada_croma'])
-      dataframe['cor_amostra_seca_triturada_X']=XYZ_color_amostra_seca_triturada[0]
-      dataframe['cor_amostra_seca_triturada_Y']=XYZ_color_amostra_seca_triturada[1]
-      dataframe['cor_amostra_seca_triturada_Z']=XYZ_color_amostra_seca_triturada[2]
+    if(set(['cor_amostra_seca_matriz',
+            'cor_amostra_seca_valor',
+            'cor_amostra_seca_croma'])
+       .issubset(dataframe.columns)):
          
-     except:
-      #It an error occurs then remove the register 
-      dataframe.drop(index=index,inplace=True)
-      
- dataframe.drop(['cor_amostra_seca_matiz','cor_amostra_seca_valor','cor_amostra_seca_croma'],axis=1,inplace=True)
- dataframe.drop(['cor_amostra_umida_matiz','cor_amostra_umida_valor','cor_amostra_umida_croma'],axis=1,inplace=True)
- dataframe.drop(['cor_amostra_amassada_matiz','cor_amostra_amassada_valor','cor_amostra_amassada_croma'],axis=1,inplace=True)
- dataframe.drop(['cor_amostra_seca_triturada_matiz','cor_amostra_seca_triturada_valor','cor_amostra_seca_triturada_croma'],axis=1,inplace=True)
+       for index in dataframe.index:
+           try:
+            XYZ_color_amostra_seca = convert_munsell_color(dataframe.loc[index]['cor_amostra_seca_matiz'],dataframe.loc[index]['cor_amostra_seca_valor'],dataframe.loc[index]['cor_amostra_seca_croma'])
+            dataframe['cor_amostra_seca_X']=XYZ_color_amostra_seca[0]
+            dataframe['cor_amostra_seca_Y']=XYZ_color_amostra_seca[1]
+            dataframe['cor_amostra_seca_Z']=XYZ_color_amostra_seca[2]
+            
+            XYZ_color_amostra_umida = convert_munsell_color(dataframe.loc[index]['cor_amostra_umida_matiz'],dataframe.loc[index]['cor_amostra_umida_valor'],dataframe.loc[index]['cor_amostra_umida_croma'])
+            dataframe['cor_amostra_umida_X']=XYZ_color_amostra_umida[0]
+            dataframe['cor_amostra_umida_Y']=XYZ_color_amostra_umida[1]
+            dataframe['cor_amostra_umida_Z']=XYZ_color_amostra_umida[2]
+            
+            XYZ_color_amostra_amassada = convert_munsell_color(dataframe.loc[index]['cor_amostra_amassada_matiz'],dataframe.loc[index]['cor_amostra_amassada_valor'],dataframe.loc[index]['cor_amostra_amassada_croma'])
+            dataframe['cor_amostra_amassada_X']=XYZ_color_amostra_amassada[0]
+            dataframe['cor_amostra_amassada_Y']=XYZ_color_amostra_amassada[1]
+            dataframe['cor_amostra_amassada_Z']=XYZ_color_amostra_amassada[2]
+                 
+            XYZ_color_amostra_seca_triturada = convert_munsell_color(dataframe.loc[index]['cor_amostra_seca_triturada_matiz'],dataframe.loc[index]['cor_amostra_seca_triturada_valor'],dataframe.loc[index]['cor_amostra_seca_triturada_croma'])
+            dataframe['cor_amostra_seca_triturada_X']=XYZ_color_amostra_seca_triturada[0]
+            dataframe['cor_amostra_seca_triturada_Y']=XYZ_color_amostra_seca_triturada[1]
+            dataframe['cor_amostra_seca_triturada_Z']=XYZ_color_amostra_seca_triturada[2]
+               
+           except:
+            #It an error occurs then remove the register 
+            dataframe.drop(index=index,inplace=True)
+         
+       dataframe.drop(['cor_amostra_seca_matiz','cor_amostra_seca_valor','cor_amostra_seca_croma'],axis=1,inplace=True)
+       dataframe.drop(['cor_amostra_umida_matiz','cor_amostra_umida_valor','cor_amostra_umida_croma'],axis=1,inplace=True)
+       dataframe.drop(['cor_amostra_amassada_matiz','cor_amostra_amassada_valor','cor_amostra_amassada_croma'],axis=1,inplace=True)
+       dataframe.drop(['cor_amostra_seca_triturada_matiz','cor_amostra_seca_triturada_valor','cor_amostra_seca_triturada_croma'],axis=1,inplace=True)
 
 
 def load_data(path):
@@ -222,12 +224,10 @@ def main():
     #Removing registers without classification . Mandatory ?
     
     dataframe = dataframe.dropna(subset='classe_solos_nivel_1')
-    
-    
-    
+        
     
     #Removing registers with Nan, for now 
-    dataframe= dataframe.dropna()
+    #dataframe= dataframe.dropna()
     dataframe.reset_index(inplace=True)
     
     #Mapping sample colors from Munsell to XYZ
@@ -235,9 +235,39 @@ def main():
     
     #Dropping index column
     dataframe.drop(['index'],axis=1,inplace=True)
+    
+    
+    dataframe['longitude']= dataframe.apply(convert_dms_to_lat_long,axis=1,
+                                        column_degrees='longitude_graus',
+                                        column_minutes='longitude_minutos',
+                                        column_seconds='longitude_segundos',
+                                        hemisphere='longitude_hemisferio')
+    dataframe['latitude']= dataframe.apply(convert_dms_to_lat_long,axis=1,
+                                        column_degrees='latitude_graus',
+                                        column_minutes='latitude_minutos',
+                                        column_seconds='latitude_segundos',
+                                        hemisphere='latitude_hemisferio')
+    
+    
+    
+    dataframe.drop(['latitude_graus','latitude_minutos','latitude_segundos',
+                    'longitude_graus','longitude_minutos','longitude_segundos',
+                    'latitude_hemisferio','longitude_hemisferio'],axis=1,inplace=True)
+    
+    cols=['codigo_pa','numero_pa','uf','municipio','longitude','latitude','altitude_(m)',
+          'profundidade_superior','profundidade_inferior',
+          'simbolo_horizonte','codigo_horizonte','classe_solos_nivel_1']
+    
+    dataframe=dataframe[cols]
+   
         
-    dataframe.to_csv(output_file,sep=';',index=False)
-
+    dataframe.to_csv(output_file,sep=';',index=False,quoting=False)
+   
+    
+    print("Dataset resultado: ",dataframe.shape)
+    print("Todos os registros:", all_data.shape)
+      
+    
 if __name__ == "__main__":
     main()
 
